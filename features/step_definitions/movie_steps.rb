@@ -46,8 +46,15 @@ Given /^I am on the RottenPotatoes home page$/ do
 # Add a declarative step here for populating the DB with movies.
 
 Given /the following movies have been added to RottenPotatoes:/ do |movies_table|
-  pending  # Remove this statement when you finish implementing the test step
+  
   movies_table.hashes.each do |movie|
+    this_movie = Movie.find_by(title: movie["title"])
+    
+    if(this_movie == nil)
+        movie_params = {"title" => movie["title"], "rating" => movie["rating"], "release_date" => movie["release_date"]}
+        Movie.create!(movie_params)
+    end
+  
     # Each returned movie will be a hash representing one row of the movies_table
     # The keys will be the table headers and the values will be the row contents.
     # Entries can be directly to the database with ActiveRecord methods
@@ -59,16 +66,56 @@ When /^I have opted to see movies rated: "(.*?)"$/ do |arg1|
   # HINT: use String#split to split up the rating_list, then
   # iterate over the ratings and check/uncheck the ratings
   # using the appropriate Capybara command(s)
-  pending  #remove this statement after implementing the test step
+  rate = Hash.new
+  ratings = arg1.remove(" ").split(",")
+  ratings.each { |this_rating|
+      check("ratings_#{this_rating}")
+      rate["ratings_#{this_rating}"] =1
+  }
+  click_button('Refresh')
+  
 end
 
 Then /^I should see only movies rated: "(.*?)"$/ do |arg1|
-  pending  #remove this statement after implementing the test step
+  rating_hash={}
+  arg1.split(',').each do |rating|
+    find('table').should have_css('td', :text => rating)
+    rating_hash[rating]=1
+  end
+  Movie.all_ratings.each do |rating|
+    if !rating_hash.has_key?(rating)
+      find('table').should have_no_css('tb', :text => rating)
+    end
+  end  
 end
 
 Then /^I should see all of the movies$/ do
-  pending  #remove this statement after implementing the test step
+  result=true
+  
+  movies = Movie.all.count
+  rows = (all("tr").count) - 1
+  
+  if(movies != rows)
+      result = false
+  end
+  expect(result).to be_truthy
 end
 
 
+When /^I have opted to see movies sorted by title$/ do 
+    click_link('Movie Title')
+end
+
+Then /^I should see "(.*?)" before "(.*?)"$/ do |arg1, arg2|
+    result = false
+    
+    if (page.body.remove("\n") =~ /.*#{arg1}.*#{arg2}.*/)
+        result = true
+    end
+    expect(result).to be_truthy
+end
+
+When /^I have opted to see movies sorted by release date$/ do 
+    click_link('Release Date')
+end
 
